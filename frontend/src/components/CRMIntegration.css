@@ -1,0 +1,151 @@
+.crm-page {
+  padding: 36px 40px 0;
+  flex: 1;
+}
+
+.crm-container {
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  padding: 32px;
+  box-shadow: var(--shadow-sm);
+}
+
+.crm-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 28px;
+  font-family: var(--font-body);
+  letter-spacing: -0.3px;
+}
+
+/* ── 3-column grid ── */
+.crm-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+/* ── Individual card ── */
+.crm-card {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  background: var(--bg-white);
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.15s;
+  cursor: default;
+}
+
+.crm-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.crm-card.connected {
+  border-color: var(--color-accent);
+  background: #f0fdf4;
+}
+
+/* ── Card header: badge + button ── */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+/* Colored initial badge (replaces icon) */
+.tool-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: var(--font-body);
+  flex-shrink: 0;
+}
+
+/* ── Connect button ── */
+.connect-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1.5px solid #d1d5db;
+  background: var(--bg-white);
+  color: var(--text-dark);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  white-space: nowrap;
+}
+
+.connect-btn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.connect-btn.disconnect {
+  border-color: var(--color-accent);
+  color: var(--color-primary);
+  background: #f0fdf4;
+}
+
+.connect-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Small colored dot inside button */
+.btn-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #9ca3af;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.connect-btn.disconnect .btn-dot {
+  background: var(--color-accent);
+}
+
+/* ── Card text ── */
+.tool-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 8px;
+  letter-spacing: -0.2px;
+}
+
+.tool-desc {
+  font-size: 12.5px;
+  color: var(--text-light);
+  line-height: 1.65;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .crm-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .crm-grid {
+    grid-template-columns: 1fr;
+  }
+  .crm-page {
+    padding: 20px 16px 0;
+  }
+}
