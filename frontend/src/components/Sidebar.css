@@ -5,12 +5,24 @@
   width: var(--sidebar-width);
   height: 100vh;
   background: var(--bg-sidebar);
-  border-right: 1px solid var(--border);
+  /* border-right: 1px solid var(--border); */
   display: flex;
   flex-direction: column;
   padding: 24px 0 16px;
   z-index: 100;
   box-shadow: var(--shadow-sm);
+  background: white;
+}
+
+.sidebar-title {
+  padding: 18px 18px 10px;
+
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+
+  color: #2c4577;
 }
 
 .sidebar-logo {
@@ -57,4 +69,261 @@
   background: var(--color-primary-light);
   color: var(--color-primary);
   font-weight: 600;
+}
+
+.sidebar-bottom {
+  margin-top: auto;
+  padding: 0 25px 0px;
+}
+
+.upload-btn {
+  width: 100%;
+  height: 40px;
+
+  border: none;
+  border-radius: 10px;
+
+  background: #0f766e;
+  color: white;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.new-project-btn {
+  width: 100%;
+  margin: 12px auto 10px;
+  display: block;
+  height: 41px;
+
+  background: #0f766e;
+  color: white;
+
+  border: none;
+  border-radius: 8px;
+  border-bottom: 10px;
+  padding: 14px 12px;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.new-project-btn:hover {
+  background: #115e59;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: visible;
+}
+
+.sidebar-item-wrapper {
+  position: relative;
+  width: 100%;
+  overflow: visible;
+}
+
+.sidebar-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 12px 36px 12px 14px;
+  text-align: left;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+}
+
+.sidebar-item:hover {
+  background: #eef7f1;
+}
+
+.sidebar-item.active {
+  background: #dff3e7;
+  color: #0d6b43;
+  font-weight: 600;
+}
+
+.sidebar-item-label {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-actions {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+}
+
+
+.dots-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 18px;
+  color: #666;
+  padding: 2px 6px;
+  border-radius: 6px;
+  line-height: 1;
+}
+
+.dots-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dots-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.project-dropdown {
+  position: absolute;
+  top: 30px;
+  right: 14px;
+
+  width: 110px;
+
+  background: white;
+  border-radius: 10px;
+
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+
+  z-index: 9999;
+
+  overflow: hidden;
+}
+
+.project-dropdown-btn {
+  border: none;
+  background: white;
+  padding: 10px 14px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  width: 100%;
+}
+
+.project-dropdown-btn:hover {
+  background: #f5f5f5;
+}
+
+.project-dropdown-btn.delete:hover {
+  background: #ffe9e9;
+  color: #d11a2a;
+}
+
+.edit-project-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 99999;
+}
+
+.edit-project-modal {
+  width: 380px;
+  background: white;
+  border-radius: 18px;
+  padding: 24px;
+}
+
+.edit-project-modal h3 {
+  margin-bottom: 16px;
+}
+
+.edit-project-modal input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #dcdcdc;
+  margin-bottom: 20px;
+}
+
+.edit-project-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.edit-project-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.edit-project-modal {
+  width: 360px;
+  background: white;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.edit-project-modal h3 {
+  margin-bottom: 18px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1d1d1d;
+}
+
+.edit-project-modal input {
+  width: 100%;
+  height: 44px;
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 0 14px;
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 20px;
+}
+
+.edit-project-modal input:focus {
+  border-color: #0b7a75;
+}
+
+.edit-project-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.edit-project-actions button {
+  border: none;
+  padding: 10px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.edit-project-actions button:first-child {
+  background: #ececec;
+  color: #333;
+}
+
+.edit-project-actions button:last-child {
+  background: #0b7a75;
+  color: white;
 }
