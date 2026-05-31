@@ -9,17 +9,33 @@ import toast, { Toaster } from 'react-hot-toast'
 // ─────────────────────────────────────────────────────────────────
 function DetailsModal({ tool, onClose, fetchTools, setModalTool }) {
 
-  if (!tool) return null
+  const versionFileRef = useRef(null)
 
   const [isEditing, setIsEditing] = useState(false)
 
   const [formData, setFormData] = useState({
-    name: tool.name || '',
-    ticketId: tool.ticketId || '',
-    department: tool.department || '',
-    creatorEmail: tool.creatorEmail || '',
-    developerEmail: tool.developerEmail || ''
+    name: '',
+    ticketId: '',
+    department: '',
+    creatorEmail: '',
+    developerEmail: ''
   })
+
+  useEffect(() => {
+
+    if (!tool) return
+
+    setFormData({
+      name: tool.name || '',
+      ticketId: tool.ticketId || '',
+      department: tool.department || '',
+      creatorEmail: tool.creatorEmail || '',
+      developerEmail: tool.developerEmail || ''
+    })
+
+  }, [tool])
+
+  if (!tool) return null
 
   const handleChange = (e) => {
 
@@ -246,12 +262,85 @@ function DetailsModal({ tool, onClose, fetchTools, setModalTool }) {
 
           {!isEditing ? (
 
-            <button
-              className="edit-btn"
-              onClick={() => setIsEditing(true)}
-            >
-              Edit
-            </button>
+            <>
+
+              <button
+                className="add-version-btn"
+                onClick={() => {
+                  versionFileRef.current?.click()
+                }}
+              >
+                + Add New .exe
+              </button>
+
+              <input
+                type="file"
+                accept=".exe"
+                ref={versionFileRef}
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+
+                  const file = e.target.files[0]
+
+                  if (!file) return
+
+                  try {
+
+                    const formData = new FormData()
+
+                    formData.append('tool', file)
+
+                    await keycloak.updateToken(30)
+
+                    const res = await fetch(
+                      `http://localhost:5000/api/tools/${tool.id}/version`,
+                      {
+                        method: 'POST',
+
+                        headers: {
+                          Authorization: `Bearer ${keycloak.token}`
+                        },
+
+                        body: formData
+                      }
+                    )
+
+                    const data = await res.json()
+
+                    if (!res.ok) {
+                      throw new Error(data.message)
+                    }
+
+                    await fetchTools()
+
+                    toast.success(
+                      'Tool updated. Previous version recorded in history.'
+                    )
+
+                    setModalTool(prev => ({
+                      ...prev,
+                      filename: file.name
+                    }))
+
+                  } catch (err) {
+
+                    console.error(err)
+
+                    toast.error(
+                      err.message || 'Version upload failed'
+                    )
+                  }
+                }}
+              />
+
+              <button
+                className="edit-btn"
+                onClick={() => setIsEditing(true)}
+              >
+                Edit
+              </button>
+
+            </>
 
           ) : (
 
@@ -286,7 +375,8 @@ function DetailsModal({ tool, onClose, fetchTools, setModalTool }) {
 // ─────────────────────────────────────────────────────────────────
 // HISTORY DRAWER
 // ─────────────────────────────────────────────────────────────────
-function HistoryDrawer({ tool, open, onClose }) {
+function HistoryDrawer({ tool, open, onClose, onDeleteHistory }) {
+  console.log(tool)
 
   return (
     <>
@@ -318,13 +408,60 @@ function HistoryDrawer({ tool, open, onClose }) {
 
         </div>
 
-        <div className="drawer-body-placeholder">
+        <div className="history-list">
 
-          <p>No history yet.</p>
+          {tool?.history?.length > 0 ? (
 
-          <small>
-            Past versions of script runs will show up here.
-          </small>
+            tool.history
+              .slice()
+              .reverse()
+              .map((item, index) => (
+
+                <div
+                  key={index}
+                  className="history-item"
+                >
+
+                  <div className="history-info">
+
+                    <h4>
+                      Version {tool.history.length - index}
+                    </h4>
+
+                    <p className="history-file">
+                      {item.filename}
+                    </p>
+
+                    <span className="history-date">
+                      {new Date(item.uploadedAt)
+                        .toLocaleString()}
+                    </span>
+
+                  </div>
+
+                  <button
+                    className="history-delete-btn"
+                    onClick={() =>
+                      onDeleteHistory(
+                        tool.id,
+                        item.id
+                      )
+                    }
+                  >
+                    <Trash size={16} />
+                  </button>
+
+                </div>
+
+              ))
+
+          ) : (
+
+            <div className="empty-history">
+              No previous versions
+            </div>
+
+          )}
 
         </div>
 
@@ -375,76 +512,76 @@ export default function Tools({
   const [deleteToolId, setDeleteToolId] = useState(null)
 
   // CONNECT
-const handleConnect = async (tool) => {
+  const handleConnect = async (tool) => {
 
-  const key = `${activePage}-${tool.id}`
+    const key = `${activePage}-${tool.id}`
 
-  // already connected → disconnect UI only
-  if (connectedTools[key]) {
-
-    setConnectedTools(prev => ({
-      ...prev,
-      [key]: false
-    }))
-
-    toast('Tool already running, please wait...   ')
-
-    return
-  }
-
-  setLoadingTool(key)
-
-  try {
-
-    await keycloak.updateToken(30)
-
-    const res = await fetch(
-      'http://localhost:5000/api/run',
-      {
-        method: 'POST',
-
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${keycloak.token}`
-        },
-
-        body: JSON.stringify({
-          page: activePage,
-          tool: tool.id,
-          exe: tool.filename
-        })
-      }
-    )
-
-    const data = await res.json()
-
-    if (data.success) {
+    // already connected → disconnect UI only
+    if (connectedTools[key]) {
 
       setConnectedTools(prev => ({
         ...prev,
-        [key]: true
+        [key]: false
       }))
 
-      toast.success('Tool connected successfully')
+      toast('Tool already running, please wait...   ')
 
-    } else {
-
-      toast.error(data.message)
+      return
     }
 
-  } catch (err) {
+    setLoadingTool(key)
 
-    console.error(err)
+    try {
 
-    toast.error(
-      err.message || 'Could not connect to backend'
-    )
+      await keycloak.updateToken(30)
 
-  } finally {
+      const res = await fetch(
+        'http://localhost:5000/api/run',
+        {
+          method: 'POST',
 
-    setLoadingTool(null)
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${keycloak.token}`
+          },
+
+          body: JSON.stringify({
+            page: activePage,
+            tool: tool.id,
+            exe: tool.filename
+          })
+        }
+      )
+
+      const data = await res.json()
+
+      if (data.success) {
+
+        setConnectedTools(prev => ({
+          ...prev,
+          [key]: true
+        }))
+
+        toast.success('Tool connected successfully')
+
+      } else {
+
+        toast.error(data.message)
+      }
+
+    } catch (err) {
+
+      console.error(err)
+
+      toast.error(
+        err.message || 'Could not connect to backend'
+      )
+
+    } finally {
+
+      setLoadingTool(null)
+    }
   }
-}
 
   // DELETE TOOL
   const handleDeleteTool = async (toolId) => {
@@ -492,6 +629,42 @@ const handleConnect = async (tool) => {
     }
   }
 
+  // DELETE HISTORY VERSION
+const deleteHistoryVersion = async (
+  toolId,
+  historyId
+) => {
+
+  try {
+
+    await keycloak.updateToken(30)
+
+    const res = await fetch(
+      `http://localhost:5000/api/tools/${toolId}/history/${historyId}`,
+      {
+        method: 'DELETE',
+
+        headers: {
+          Authorization: `Bearer ${keycloak.token}`
+        }
+      }
+    )
+
+    const data = await res.json()
+
+    if (!res.ok) {
+      throw new Error(data.message)
+    }
+
+    toast.success('Version deleted')
+
+    await fetchTools()
+
+  } catch (err) {
+
+    toast.error(err.message)
+  }
+}
   // DOWNLOAD
   const handleDownload = (tool) => {
 
@@ -652,6 +825,7 @@ const handleConnect = async (tool) => {
         tool={drawerTool}
         open={drawerOpen}
         onClose={closeDrawer}
+        onDeleteHistory={deleteHistoryVersion}
       />
 
       {deleteToolId && (

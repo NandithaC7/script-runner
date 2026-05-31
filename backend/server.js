@@ -72,7 +72,9 @@ app.post(
 
       filename: req.file ? req.file.filename : null,
 
-      createdAt: new Date()
+      createdAt: new Date(),
+
+      history: []
     }
 
     tools.push(newTool)
@@ -113,7 +115,7 @@ app.post('/api/run', authMiddleware, (req, res) => {
   }
 
   console.log(`[RUN] page=${page} tool=${tool} exe=${exe}`)
-  // prev method: execFile whoich was slower & sychronous
+  // prev method: execFile which was slower & sychronous
   try {
     const child = spawn(exePath, [], {
       detached: true,//.exe should continue running even if Node request finishes
@@ -297,7 +299,7 @@ app.put('/api/tools/:id', authMiddleware, (req, res) => {
     })
   }
 })
-
+// GET PROJECTS
 app.get('/api/projects', (req, res) => {
 
   try {
@@ -318,7 +320,7 @@ app.get('/api/projects', (req, res) => {
     })
   }
 })
-
+// ADD PROJECT
 app.post('/api/projects', authMiddleware, (req, res) => {
 
   try {
@@ -458,3 +460,109 @@ app.delete('/api/projects/:id', (req, res) => {
     })
   }
 })
+// 
+app.post(
+  '/api/tools/:id/version',
+  authMiddleware,
+  upload.single('tool'),
+  (req, res) => {
+
+    console.log('VERSION ROUTE HIT')
+
+
+    const toolId = req.params.id
+
+    const toolsPath = path.join(__dirname, 'tools.json')
+
+    const tools = JSON.parse(
+      fs.readFileSync(toolsPath, 'utf-8')
+    )
+
+    const tool = tools.find(
+      t => String(t.id) === String(toolId)
+    )
+
+    if (!tool) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tool not found'
+      })
+    }
+
+    if (!tool.history) {
+      tool.history = []
+    }
+
+    tool.history.unshift({
+      id: Date.now().toString(),
+      filename: tool.filename,
+      uploadedAt: tool.createdAt
+    })
+
+    tool.filename = req.file.filename
+    tool.createdAt = new Date()
+
+    fs.writeFileSync(
+      toolsPath,
+      JSON.stringify(tools, null, 2)
+    )
+
+    res.json({
+      success: true,
+      message: 'New version uploaded'
+    })
+  }
+)
+
+app.delete(
+  '/api/tools/:toolId/history/:historyId',
+  (req, res) => {
+
+    const toolsPath =
+      path.join(__dirname, 'tools.json')
+
+    const tools =
+      JSON.parse(
+        fs.readFileSync(
+          toolsPath,
+          'utf8'
+        )
+      )
+
+    const tool =
+      tools.find(
+        t =>
+          t.id === req.params.toolId
+      )
+
+    if (!tool) {
+
+      return res.status(404)
+        .json({
+          message:
+            'Tool not found'
+        })
+    }
+
+    tool.history =
+      tool.history.filter(
+        h =>
+          String(h.id) !==
+          String(req.params.historyId)
+      )
+      
+    fs.writeFileSync(
+      toolsPath,
+      JSON.stringify(
+        tools,
+        null,
+        2
+      )
+    )
+
+    res.json({
+      message:
+        'History version deleted'
+    })
+  }
+)
