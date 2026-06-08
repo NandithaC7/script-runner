@@ -24,3 +24,6 @@ tmp
 # mac/windows
 .DS_Store
 Thumbs.db
+
+# local history file
+history.json

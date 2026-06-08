@@ -1,3 +1,5 @@
+require('dotenv').config()
+
 const express = require('express')
 const cors = require('cors')
 const path = require('path')
@@ -6,14 +8,27 @@ const { spawn } = require('child_process')
 const authMiddleware = require('./authMiddleware')
 const app = express()
 const PORT = 5000
-
 const multer = require('multer')
+
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+  }
+})
 
 app.use(express.json())
 
 app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:5174/']
 }))
+
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`)
+  next()
+})
 
 const projectsPath = path.join(__dirname, 'projects.json')
 
@@ -30,7 +45,30 @@ const storage = multer.diskStorage({
 
 })
 
-const upload = multer({ storage })
+const upload = multer({
+
+  storage,
+
+  fileFilter: (req, file, cb) => {
+
+    if (
+      file.originalname
+        .toLowerCase()
+        .endsWith('.exe')
+    ) {
+
+      cb(null, true)
+
+    } else {
+
+      cb(
+        new Error('Only .exe files are allowed')
+      )
+    }
+
+  }
+
+})
 
 // ── POST /api/upload- uploads files to scripts directory ──────────
 app.post(
@@ -38,17 +76,72 @@ app.post(
   authMiddleware,
   upload.single('tool'),
 
-  (req, res) => {
-
-    // if (!req.file) {
-
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: 'No file uploaded'
-    //   })
-    // }
+  async (req, res) => {
 
     const toolsPath = path.join(__dirname, 'tools.json')
+
+    if (!req.body.name?.trim()) {
+
+      return res.status(400).json({
+        success: false,
+        message: 'Tool Name is required'
+      })
+    }
+
+    if (!req.body.ticketId?.trim()) {
+
+      return res.status(400).json({
+        success: false,
+        message: 'Ticket ID is required'
+      })
+    }
+
+    const emailRegex =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+    if (
+      req.body.creatorEmail &&
+      !emailRegex.test(req.body.creatorEmail)
+    ) {
+
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid Creator Email'
+      })
+    }
+
+    if (
+      req.body.developerEmail &&
+      !emailRegex.test(req.body.developerEmail)
+    ) {
+
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid Developer Email'
+      })
+    }
+
+    if (req.file) {
+
+      const fileBuffer = fs.readFileSync(req.file.path)
+
+      const s3Key = `tools/uploads/${req.file.filename}`
+
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: process.env.AWS_BUCKET_NAME,
+          Key: s3Key,
+          Body: fileBuffer,
+          ContentType: 'application/octet-stream'
+        })
+      )
+
+      console.log(`[S3 UPLOADED] ${s3Key}`)
+
+      console.log(
+        `[S3 UPLOADED] ${req.file.filename}`
+      )
+    }
 
     const tools = JSON.parse(
       fs.readFileSync(toolsPath, 'utf-8')
@@ -71,6 +164,8 @@ app.post(
       developerEmail: req.body.developerEmail,
 
       filename: req.file ? req.file.filename : null,
+
+      s3Key: req.file ? req.file.filename : null,
 
       createdAt: new Date(),
 
@@ -170,15 +265,6 @@ app.get('/api/health', (req, res) => {
     fs.statSync(path.join(SCRIPTS_DIR, f)).isFile()
   )
   res.json({ status: 'running', scripts_folder: SCRIPTS_DIR, scripts_found: scripts })
-})
-
-// ── Start ─────────────────────────────────────────────────────────
-app.listen(PORT, '0.0.0.0', () => {
-  console.log('='.repeat(50))
-  console.log('  Script Execution Backend — Node.js + Express')
-  console.log(`  Scripts folder: ${SCRIPTS_DIR}`)
-  console.log(`  Running at:     http://localhost:${PORT}`)
-  console.log('='.repeat(50))
 })
 
 //get api for frontend to fetch details of tools
@@ -499,6 +585,8 @@ app.post(
       uploadedAt: tool.createdAt
     })
 
+
+
     tool.filename = req.file.filename
     tool.createdAt = new Date()
 
@@ -515,8 +603,21 @@ app.post(
 )
 
 app.delete(
-  '/api/tools/:toolId/history/:historyId',
+  '/api/tools/:toolId/history/:historyId', authMiddleware,
   (req, res) => {
+
+    const roles =
+      req.user?.realm_access?.roles || []
+
+    const allowed =
+      roles.includes('admin') ||
+      roles.includes('dev')
+
+    if (!allowed) {
+      return res.status(403).json({
+        message: 'Access denied'
+      })
+    }
 
     const toolsPath =
       path.join(__dirname, 'tools.json')
@@ -532,7 +633,7 @@ app.delete(
     const tool =
       tools.find(
         t =>
-          t.id === req.params.toolId
+          String(t.id) === String(req.params.toolId)
       )
 
     if (!tool) {
@@ -550,7 +651,7 @@ app.delete(
           String(h.id) !==
           String(req.params.historyId)
       )
-      
+
     fs.writeFileSync(
       toolsPath,
       JSON.stringify(
@@ -566,3 +667,12 @@ app.delete(
     })
   }
 )
+
+// ── Start ─────────────────────────────────────────────────────────
+app.listen(PORT, '0.0.0.0', () => {
+  console.log('='.repeat(50))
+  console.log('  Script Execution Backend — Node.js + Express')
+  console.log(`  Scripts folder: ${SCRIPTS_DIR}`)
+  console.log(`  Running at:     http://localhost:${PORT}`)
+  console.log('='.repeat(50))
+})

@@ -64,6 +64,8 @@ export default function App() {
   //delete popup
   const [deleteToolId, setDeleteToolId] = useState(null)
 
+  const [infoTool, setInfoTool] = useState(null)
+
   //add projects
   const handleAddProject = async () => {
 
@@ -135,6 +137,42 @@ export default function App() {
   //upload proj
   const handleUpload = async () => {
 
+    if (!toolName.trim()) {
+
+      toast.error('Tool Name is required')
+
+      return
+    }
+
+    if (!ticketId.trim()) {
+
+      toast.error('Ticket ID is required')
+
+      return
+    }
+
+    const emailRegex =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+    if (
+      creatorEmail.trim() &&
+      !emailRegex.test(creatorEmail)
+    ) {
+
+      toast.error('Invalid Creator Email')
+
+      return
+    }
+
+    if (
+      developerEmail.trim() &&
+      !emailRegex.test(developerEmail)
+    ) {
+
+      toast.error('Invalid Developer Email')
+
+      return
+    }
     const formData = new FormData()
 
     if (selectedFile) {
@@ -199,16 +237,28 @@ export default function App() {
   }
 
   const fetchTools = async () => {
+
     try {
-      const res = await fetch('http://localhost:5000/api/tools', {
-        headers: {
-          Authorization: `Bearer ${keycloak.token}`
+
+      await keycloak.updateToken(30)
+
+      const res = await fetch(
+        'http://localhost:5000/api/tools',
+        {
+          headers: {
+            Authorization: `Bearer ${keycloak.token}`
+          }
         }
-      })
+      )
+
       const data = await res.json()
+
       setTools(data)
+
     } catch (err) {
+
       console.error(err)
+
       toast.error('Failed to fetch tools')
     }
   }
@@ -274,6 +324,7 @@ export default function App() {
 
         <main className="main-content">
           <Tools
+            setDrawerTool={null}
             activePage={activePage}
             searchTerm={searchTerm}
             tools={tools}
@@ -327,9 +378,10 @@ export default function App() {
 
                 <input
                   type="text"
-                  placeholder="Tool Name"
+                  placeholder="Tool Name (Required)"
                   value={toolName}
                   onChange={(e) => setToolName(e.target.value)}
+                  required
                 />
 
                 <input
@@ -341,9 +393,10 @@ export default function App() {
 
                 <input
                   type="text"
-                  placeholder="Ticket ID"
+                  placeholder="Ticket ID (Required)"
                   value={ticketId}
                   onChange={(e) => setTicketId(e.target.value)}
+                  required
                 />
 
                 <input

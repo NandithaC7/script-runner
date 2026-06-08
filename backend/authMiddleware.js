@@ -21,17 +21,17 @@ async function authMiddleware(req, res, next) {
 
     const token = authHeader.split(' ')[1]
 
-    // VERIFY TOKEN
     const { payload } = await jwtVerify(token, JWKS, {
       issuer: 'http://localhost:8080/realms/rpa-launcher'
     })
 
-    // STORE USER DATA INSIDE REQUEST
     req.user = payload
 
     next()
 
   } catch (err) {
+
+    console.error('TOKEN ERROR:', err)
 
     return res.status(401).json({
       success: false,

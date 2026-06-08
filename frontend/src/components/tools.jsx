@@ -7,7 +7,7 @@ import toast, { Toaster } from 'react-hot-toast'
 // ─────────────────────────────────────────────────────────────────
 // DETAILS MODAL
 // ─────────────────────────────────────────────────────────────────
-function DetailsModal({ tool, onClose, fetchTools, setModalTool }) {
+function DetailsModal({ tool, onClose, fetchTools, setModalTool, isAdmin, isDeveloper }) {
 
   const versionFileRef = useRef(null)
 
@@ -264,14 +264,18 @@ function DetailsModal({ tool, onClose, fetchTools, setModalTool }) {
 
             <>
 
-              <button
-                className="add-version-btn"
-                onClick={() => {
-                  versionFileRef.current?.click()
-                }}
-              >
-                + Add New .exe
-              </button>
+              {(isAdmin || isDeveloper) && (
+
+                <button
+                  className="add-version-btn"
+                  onClick={() => {
+                    versionFileRef.current?.click()
+                  }}
+                >
+                  + Add New .exe
+                </button>
+
+              )}
 
               <input
                 type="file"
@@ -333,12 +337,18 @@ function DetailsModal({ tool, onClose, fetchTools, setModalTool }) {
                 }}
               />
 
-              <button
-                className="edit-btn"
-                onClick={() => setIsEditing(true)}
-              >
-                Edit
-              </button>
+              {(isAdmin || isDeveloper) && (
+
+                <button
+                  className="edit-btn"
+                  onClick={() => setIsEditing(true)}
+                >
+                  Edit
+                </button>
+
+              )}
+
+
 
             </>
 
@@ -375,7 +385,7 @@ function DetailsModal({ tool, onClose, fetchTools, setModalTool }) {
 // ─────────────────────────────────────────────────────────────────
 // HISTORY DRAWER
 // ─────────────────────────────────────────────────────────────────
-function HistoryDrawer({ tool, open, onClose, onDeleteHistory }) {
+function HistoryDrawer({ tool, open, onClose, onDeleteHistory, isAdmin, isDeveloper }) {
   console.log(tool)
 
   return (
@@ -439,17 +449,21 @@ function HistoryDrawer({ tool, open, onClose, onDeleteHistory }) {
 
                   </div>
 
-                  <button
-                    className="history-delete-btn"
-                    onClick={() =>
-                      onDeleteHistory(
-                        tool.id,
-                        item.id
-                      )
-                    }
-                  >
-                    <Trash size={16} />
-                  </button>
+                  {(isAdmin || isDeveloper) && (
+
+                    <button
+                      className="history-delete-btn"
+                      onClick={() =>
+                        onDeleteHistory(
+                          tool.id,
+                          item.id
+                        )
+                      }
+                    >
+                      <Trash size={18} />
+                    </button>
+
+                  )}
 
                 </div>
 
@@ -510,6 +524,8 @@ export default function Tools({
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const [deleteToolId, setDeleteToolId] = useState(null)
+
+  const [infoTool, setInfoTool] = useState(null)
 
   // CONNECT
   const handleConnect = async (tool) => {
@@ -630,48 +646,59 @@ export default function Tools({
   }
 
   // DELETE HISTORY VERSION
-const deleteHistoryVersion = async (
-  toolId,
-  historyId
-) => {
+  const deleteHistoryVersion = async (
+    toolId,
+    historyId
+  ) => {
 
-  try {
+    try {
 
-    await keycloak.updateToken(30)
+      await keycloak.updateToken(30)
 
-    const res = await fetch(
-      `http://localhost:5000/api/tools/${toolId}/history/${historyId}`,
-      {
-        method: 'DELETE',
+      const res = await fetch(
+        `http://localhost:5000/api/tools/${toolId}/history/${historyId}`,
+        {
+          method: 'DELETE',
 
-        headers: {
-          Authorization: `Bearer ${keycloak.token}`
+          headers: {
+            Authorization: `Bearer ${keycloak.token}`
+          }
         }
+      )
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.message)
       }
-    )
 
-    const data = await res.json()
+      toast.success('Version deleted')
 
-    if (!res.ok) {
-      throw new Error(data.message)
+      await fetchTools()
+
+      setDrawerTool(prev => ({
+        ...prev,
+        history: (prev?.history || []).filter(
+          h => String(h.id) !== String(historyId)
+        )
+      }))
+
+    } catch (err) {
+
+      console.error(err)
+
+      toast.error(
+        err.message || 'Failed to delete version'
+      )
     }
-
-    toast.success('Version deleted')
-
-    await fetchTools()
-
-  } catch (err) {
-
-    toast.error(err.message)
   }
-}
   // DOWNLOAD
   const handleDownload = (tool) => {
 
     if (!tool.filename) {
-
-      alert('No file linked.')
-
+      toast.error(
+        `No executable is attached to "${tool.name}"`
+      )
       return
     }
 
@@ -760,14 +787,25 @@ const deleteHistoryVersion = async (
                           : 'Connect'}
                     </button>
 
-                    {(isAdmin || isDeveloper) && (
-                      <button
-                        className="delete-icon-btn"
-                        onClick={() => handleDeleteTool(tool.id)}
+                    <div className="tool-actions">
+
+                      <span
+                        className="info-link"
+                        onClick={() => setInfoTool(tool)}
                       >
-                        <Trash size={15} strokeWidth={2.8} />
-                      </button>
-                    )}
+                        Info
+                      </span>
+
+                      {(isAdmin || isDeveloper) && (
+                        <button
+                          className="delete-icon-btn"
+                          onClick={() => handleDeleteTool(tool.id)}
+                        >
+                          <Trash size={15} strokeWidth={2.8} />
+                        </button>
+                      )}
+
+                    </div>
 
                   </div>
 
@@ -819,6 +857,8 @@ const deleteHistoryVersion = async (
         onClose={closeModal}
         fetchTools={fetchTools}
         setModalTool={setModalTool}
+        isAdmin={isAdmin}
+        isDeveloper={isDeveloper}
       />
 
       <HistoryDrawer
@@ -826,6 +866,8 @@ const deleteHistoryVersion = async (
         open={drawerOpen}
         onClose={closeDrawer}
         onDeleteHistory={deleteHistoryVersion}
+        isAdmin={isAdmin}
+        isDeveloper={isDeveloper}
       />
 
       {deleteToolId && (
@@ -868,7 +910,30 @@ const deleteHistoryVersion = async (
 
         </div>
       )}
+      {infoTool && (
 
+        <div className="delete-modal-overlay">
+
+          <div className="info-modal">
+
+            <h3>Executable File</h3>
+
+            <p className="exe-name">
+              {infoTool.filename || 'No executable attached'}
+            </p>
+
+            <button
+              className="close-info-btn"
+              onClick={() => setInfoTool(null)}
+            >
+              Close
+            </button>
+
+          </div>
+
+        </div>
+
+      )}
     </div>
   )
 }
